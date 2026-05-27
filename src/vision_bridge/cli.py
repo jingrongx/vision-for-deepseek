@@ -12,6 +12,12 @@ import sys
 from pathlib import Path
 from typing import Optional
 
+# Windows 终端默认 GBK 编码导致中文乱码，强制 UTF-8 输出
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8")
+
 
 def _cmd_describe(args: argparse.Namespace) -> int:
     """处理 describe 子命令。"""
