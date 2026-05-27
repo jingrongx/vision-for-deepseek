@@ -95,14 +95,24 @@ cat image.png | base64 | python src/vision_bridge/cli.py describe --stdin
 - `--language zh|en` — 输出语言（默认 zh）
 - `--prompt "自定义提示"` — 自定义分析提示词
 
-### 第 3 步：批量处理目录
+### 第 3 步：对比多张图片（单次 API 调用）
+
+对比分析多张图片，所有图片在同一 API 请求中发送：
+
+```bash
+python src/vision_bridge/cli.py compare <图片1> <图片2> [图片3...]
+python src/vision_bridge/cli.py compare img1.png img2.png --provider qwen
+python src/vision_bridge/cli.py compare before.png after.png --prompt "对比这两张图片的差异"
+```
+
+### 第 4 步：批量处理目录
 
 ```bash
 python src/vision_bridge/cli.py batch <目录路径>
 python src/vision_bridge/cli.py batch <目录路径> --output-dir ./results/
 ```
 
-### 第 4 步：使用输出结果
+### 第 5 步：使用输出结果
 
 命令行输出即为图片的结构化文本描述。将此文本直接提供给 DeepSeek 即可进行推理分析。
 

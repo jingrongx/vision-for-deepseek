@@ -131,6 +131,75 @@ class VisionBridge:
             elapsed_ms=elapsed_ms,
         )
 
+    def compare(
+        self,
+        image_paths: list[str | Path],
+        provider: Optional[str] = None,
+        model: Optional[str] = None,
+        prompt: Optional[str] = None,
+        output_format: Optional[str] = None,
+        language: Optional[str] = None,
+    ) -> str:
+        """对比分析多张图片（单次 API 调用）。
+
+        Args:
+            image_paths: 多张图片的路径列表。
+            provider: 提供者名称，为 None 使用默认提供者。
+            model: 模型名称，为 None 使用配置中的默认模型。
+            prompt: 自定义提示词。
+            output_format: 输出格式。
+            language: 输出语言。
+
+        Returns:
+            格式化后的多图对比描述文本。
+        """
+        if len(image_paths) < 2:
+            raise ValueError("至少需要 2 张图片进行对比")
+
+        image_paths = [Path(p) for p in image_paths]
+
+        provider_name = provider or self.config.default_provider
+        provider_config = self.config.providers.get(provider_name)
+        if provider_config is None:
+            available = ", ".join(self.config.providers.keys())
+            raise ProviderNotAvailableError(
+                f"提供者 '{provider_name}' 未在配置中找到。可用提供者: {available}"
+            )
+
+        if model:
+            provider_config = provider_config.__class__(**{
+                **provider_config.__dict__,
+                "model": model,
+            })
+
+        provider_cls = get_provider(provider_name)
+        vision_provider: VisionProvider = provider_cls(provider_config)
+
+        if output_format or language:
+            from .types import OutputFormat, OutputSettings
+            fmt = OutputFormat(output_format) if output_format else self.config.output.format
+            lang = language or self.config.output.language
+            formatter = OutputFormatter(OutputSettings(
+                format=fmt,
+                language=lang,
+                include_metadata=self.config.output.include_metadata,
+            ))
+        else:
+            formatter = self.formatter
+
+        start_time = time.time()
+        raw_description = vision_provider.describe_images(image_paths, prompt)
+        elapsed_ms = (time.time() - start_time) * 1000
+
+        filenames = ", ".join(p.name for p in image_paths)
+        return formatter.format(
+            raw_description=raw_description,
+            provider_name=provider_name,
+            model=provider_config.model,
+            image_path=Path(filenames),
+            elapsed_ms=elapsed_ms,
+        )
+
     def describe_batch(
         self,
         directory: str | Path,

@@ -83,3 +83,13 @@ class TestDoubaoVisionProvider:
         with patch.dict("sys.modules", {"openai": None}):
             with pytest.raises(ImportError, match="openai"):
                 provider.describe_image(sample_image_path)
+
+    def test_describe_images_success(self, provider, sample_image_path, sample_image_dir, mock_openai_response):
+        paths = list(sample_image_dir.iterdir())[:2]
+        with patch("openai.OpenAI") as mock_openai:
+            mock_client = MagicMock()
+            mock_client.chat.completions.create.return_value = mock_openai_response
+            mock_openai.return_value = mock_client
+
+            result = provider.describe_images(paths)
+            assert "测试图片" in result

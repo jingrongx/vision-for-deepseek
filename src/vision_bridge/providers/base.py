@@ -61,6 +61,31 @@ class VisionProvider(ABC):
         """
         ...
 
+    def describe_images(
+        self,
+        image_paths: list[Path],
+        prompt: Optional[str] = None,
+    ) -> str:
+        """分析多张图片并返回文本描述。
+
+        将多张图片在同一 API 调用中发送给视觉模型，用于对比、关联分析。
+
+        Args:
+            image_paths: 多张图片的路径列表。
+            prompt: 可选的自定义提示词。
+
+        Returns:
+            所有图片的综合文本描述。
+
+        Raises:
+            ImageTooLargeError: 图片超过大小限制。
+            UnsupportedFormatError: 图片格式不受支持。
+            APIError: API 调用失败。
+        """
+        raise NotImplementedError(
+            f"[{self.provider_name}] 不支持多图识别"
+        )
+
     @abstractmethod
     def supports_format(self, image_format: str) -> bool:
         """检查此提供者是否支持指定格式。"""

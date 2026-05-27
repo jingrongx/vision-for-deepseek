@@ -71,6 +71,27 @@ def _cmd_describe(args: argparse.Namespace) -> int:
             Path(tmp_file.name).unlink(missing_ok=True)
 
 
+def _cmd_compare(args: argparse.Namespace) -> int:
+    """处理 compare 子命令。"""
+    from .core import VisionBridge
+
+    bridge = VisionBridge(args.config)
+    try:
+        result = bridge.compare(
+            image_paths=args.images,
+            provider=args.provider,
+            model=args.model,
+            prompt=args.prompt,
+            output_format=args.format,
+            language=args.language,
+        )
+        print(result)
+        return 0
+    except Exception as e:
+        print(f"错误: {e}", file=sys.stderr)
+        return 1
+
+
 def _cmd_batch(args: argparse.Namespace) -> int:
     """处理 batch 子命令。"""
     from .core import VisionBridge
@@ -209,6 +230,7 @@ def main(args: Optional[list[str]] = None) -> int:
 示例:
   vision-bridge describe photo.jpg
   vision-bridge describe photo.jpg --provider qwen
+  vision-bridge compare img1.png img2.png
   vision-bridge batch ./images/ --output-dir ./results/
   vision-bridge config show
   vision-bridge config init
@@ -241,6 +263,29 @@ def main(args: Optional[list[str]] = None) -> int:
         help="输出语言 (默认: zh)",
     )
     desc_parser.add_argument("--config", "-c", type=Path, help="配置文件路径")
+
+    # ---- compare ----
+    comp_parser = subparsers.add_parser("compare", help="对比分析多张图片（单次API调用）")
+    comp_parser.add_argument("images", type=Path, nargs="+", help="多张图片的文件路径（至少2张）")
+    comp_parser.add_argument(
+        "--provider", "-p",
+        choices=["doubao", "qwen", "claude", "openai", "ollama"],
+        help="视觉提供者",
+    )
+    comp_parser.add_argument("--model", "-m", help="覆盖默认模型")
+    comp_parser.add_argument("--prompt", help="自定义分析提示词")
+    comp_parser.add_argument(
+        "--format", "-f",
+        choices=["structured", "narrative", "simple"],
+        help="输出格式",
+    )
+    comp_parser.add_argument(
+        "--language", "-l",
+        choices=["zh", "en"],
+        default="zh",
+        help="输出语言 (默认: zh)",
+    )
+    comp_parser.add_argument("--config", "-c", type=Path, help="配置文件路径")
 
     # ---- batch ----
     batch_parser = subparsers.add_parser("batch", help="批量描述目录中的图片")
@@ -290,6 +335,8 @@ def main(args: Optional[list[str]] = None) -> int:
             print("错误: 请提供图片路径或使用 --stdin 从标准输入读取", file=sys.stderr)
             return 1
         return _cmd_describe(args)
+    elif args.command == "compare":
+        return _cmd_compare(args)
     elif args.command == "batch":
         return _cmd_batch(args)
     elif args.command == "config":

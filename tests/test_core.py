@@ -81,3 +81,19 @@ class TestVisionBridge:
 
             result = bridge.describe(sample_image_path, model="doubao-vision-pro-32k")
             assert "自定义模型描述" in result
+
+    def test_compare_images(self, config_yaml_path, sample_image_dir):
+        bridge = VisionBridge(config_yaml_path)
+        paths = list(sample_image_dir.iterdir())[:2]
+
+        with patch("vision_bridge.providers.doubao.DoubaoVisionProvider.describe_images") as mock_desc:
+            mock_desc.return_value = "两张图片的对比分析"
+
+            result = bridge.compare(paths)
+            assert "对比分析" in result
+            assert "doubao" in result
+
+    def test_compare_too_few_images(self, config_yaml_path, sample_image_path):
+        bridge = VisionBridge(config_yaml_path)
+        with pytest.raises(ValueError, match="至少需要"):
+            bridge.compare([sample_image_path])
