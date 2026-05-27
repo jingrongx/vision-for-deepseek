@@ -15,12 +15,46 @@ from typing import Optional
 
 def _cmd_describe(args: argparse.Namespace) -> int:
     """处理 describe 子命令。"""
+    import tempfile
     from .core import VisionBridge
 
     bridge = VisionBridge(args.config)
+
+    # 处理 stdin 输入
+    image_path = args.image
+    tmp_file = None
+    if args.stdin:
+        # 从 stdin 读取 base64 数据，写入临时文件
+        import base64
+        raw_data = sys.stdin.buffer.read()
+        if not raw_data:
+            print("错误: stdin 无数据输入", file=sys.stderr)
+            return 1
+        # 尝试解码为 base64，如果是纯 base64 字符串需要先解码
+        try:
+            data = base64.b64decode(raw_data)
+        except Exception:
+            # 如果不是 base64，当作原始二进制数据
+            data = raw_data
+
+        suffix = ".png"
+        if data[:4] == b"\x89PNG":
+            suffix = ".png"
+        elif data[:2] == b"\xff\xd8":
+            suffix = ".jpg"
+        elif data[:4] == b"RIFF":
+            suffix = ".webp"
+        elif data[:6] == b"GIF89a" or data[:6] == b"GIF87a":
+            suffix = ".gif"
+
+        tmp_file = tempfile.NamedTemporaryFile(suffix=suffix, delete=False)
+        tmp_file.write(data)
+        tmp_file.close()
+        image_path = tmp_file.name
+
     try:
         result = bridge.describe(
-            image_path=args.image,
+            image_path=image_path,
             provider=args.provider,
             model=args.model,
             prompt=args.prompt,
@@ -32,6 +66,9 @@ def _cmd_describe(args: argparse.Namespace) -> int:
     except Exception as e:
         print(f"错误: {e}", file=sys.stderr)
         return 1
+    finally:
+        if tmp_file:
+            Path(tmp_file.name).unlink(missing_ok=True)
 
 
 def _cmd_batch(args: argparse.Namespace) -> int:
@@ -183,7 +220,8 @@ def main(args: Optional[list[str]] = None) -> int:
 
     # ---- describe ----
     desc_parser = subparsers.add_parser("describe", help="描述单张图片")
-    desc_parser.add_argument("image", type=Path, help="图片文件路径")
+    desc_parser.add_argument("image", type=Path, nargs="?", help="图片文件路径（使用 --stdin 时可省略）")
+    desc_parser.add_argument("--stdin", action="store_true", help="从标准输入读取 base64 图片数据")
     desc_parser.add_argument(
         "--provider", "-p",
         choices=["doubao", "qwen", "claude", "openai", "ollama"],
@@ -248,6 +286,9 @@ def main(args: Optional[list[str]] = None) -> int:
 
     # 命令分发
     if args.command == "describe":
+        if args.image is None and not args.stdin:
+            print("错误: 请提供图片路径或使用 --stdin 从标准输入读取", file=sys.stderr)
+            return 1
         return _cmd_describe(args)
     elif args.command == "batch":
         return _cmd_batch(args)

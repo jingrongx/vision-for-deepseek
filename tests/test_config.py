@@ -3,6 +3,7 @@
 import os
 import tempfile
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 import yaml
@@ -129,3 +130,65 @@ class TestFindConfigPath:
 
         found = _find_config_path()
         assert found == config_path
+
+class TestDotenvLoading:
+    """测试 .env 自动加载。"""
+
+    def test_load_dotenv(self, tmp_path, monkeypatch):
+        """测试从 .env 文件加载环境变量。"""
+        from vision_bridge.config import _load_dotenv
+
+        env_file = tmp_path / ".env"
+        env_file.write_text("TEST_VAR1=hello\nTEST_VAR2=world\n")
+
+        # 确保环境变量不存在
+        monkeypatch.delenv("TEST_VAR1", raising=False)
+        monkeypatch.delenv("TEST_VAR2", raising=False)
+
+        count = _load_dotenv(env_file)
+        assert count == 2
+        assert os.environ["TEST_VAR1"] == "hello"
+        assert os.environ["TEST_VAR2"] == "world"
+
+    def test_load_dotenv_no_overwrite(self, tmp_path, monkeypatch):
+        """测试不覆盖已存在的环境变量。"""
+        from vision_bridge.config import _load_dotenv
+
+        env_file = tmp_path / ".env"
+        env_file.write_text("EXISTING_VAR=new_value\n")
+
+        monkeypatch.setenv("EXISTING_VAR", "original_value")
+        count = _load_dotenv(env_file)
+        assert count == 0
+        assert os.environ["EXISTING_VAR"] == "original_value"
+
+    def test_load_dotenv_skips_comments(self, tmp_path, monkeypatch):
+        from vision_bridge.config import _load_dotenv
+
+        env_file = tmp_path / ".env"
+        env_file.write_text("# this is a comment\n\n  # another comment\nREAL_VAR=real_value\n")
+
+        monkeypatch.delenv("REAL_VAR", raising=False)
+        count = _load_dotenv(env_file)
+        assert count == 1
+
+    def test_load_dotenv_nonexistent(self):
+        """测试加载不存在的文件返回 0。"""
+        from vision_bridge.config import _load_dotenv
+        count = _load_dotenv("/nonexistent/.env")
+        assert count == 0
+
+    def test_auto_load_dotenv(self, tmp_path, monkeypatch):
+        """测试自动从常见位置加载。"""
+        from vision_bridge.config import _auto_load_dotenv
+
+        env_file = tmp_path / ".env"
+        env_file.write_text("AUTO_VAR=auto_loaded\n")
+
+        monkeypatch.delenv("AUTO_VAR", raising=False)
+
+        # patch cwd to tmp_path
+        with patch("pathlib.Path.cwd", return_value=tmp_path):
+            _auto_load_dotenv()
+
+        assert os.environ.get("AUTO_VAR") == "auto_loaded"

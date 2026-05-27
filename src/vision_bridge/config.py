@@ -5,6 +5,11 @@
   1. VISION_BRIDGE_CONFIG 环境变量
   2. ~/.config/vision-for-deepseek/config.yaml
   3. ./config.yaml
+
+.env 文件自动加载（不覆盖已存在的环境变量）:
+  1. 当前工作目录 .env
+  2. ~/.config/vision-for-deepseek/.env
+  3. 项目根目录 .env
 """
 
 import os
@@ -16,6 +21,61 @@ import yaml
 
 from .exceptions import ConfigError
 from .types import AppConfig, OutputSettings, ProviderConfig
+
+
+def _load_dotenv(path: str | Path) -> int:
+    """解析 .env 文件并加载环境变量（不覆盖已存在的变量）。
+
+    Args:
+        path: .env 文件路径。
+
+    Returns:
+        成功加载的变量数量。
+    """
+    path = Path(path).expanduser()
+    if not path.exists():
+        return 0
+
+    count = 0
+    with open(path, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            # 跳过空行和注释
+            if not line or line.startswith("#"):
+                continue
+            # 解析 KEY=VALUE
+            if "=" not in line:
+                continue
+            key, _, value = line.partition("=")
+            key = key.strip()
+            value = value.strip()
+            # 去掉引号
+            if len(value) >= 2 and value[0] == value[-1] and value[0] in ('"', "'"):
+                value = value[1:-1]
+            # 不覆盖已存在的环境变量
+            if key not in os.environ:
+                os.environ[key] = value
+                count += 1
+    return count
+
+
+def _auto_load_dotenv() -> None:
+    """自动从常见位置加载 .env 文件。"""
+    search_paths = [
+        Path.cwd() / ".env",
+        Path.home() / ".config" / "vision-for-deepseek" / ".env",
+    ]
+    # 也检查项目根目录（从当前文件向上找）
+    current = Path(__file__).resolve().parent
+    for _ in range(5):
+        env_path = current / ".env"
+        if env_path not in search_paths:
+            search_paths.append(env_path)
+        current = current.parent
+
+    for env_path in search_paths:
+        if env_path.exists():
+            _load_dotenv(env_path)
 
 
 # 环境变量引用正则: ${VAR_NAME}
@@ -81,6 +141,8 @@ def _find_config_path(explicit_path: Optional[str | Path] = None) -> Path:
 def load_config(config_path: Optional[str | Path] = None) -> AppConfig:
     """加载并验证配置文件。
 
+    自动加载 .env 文件中的环境变量，无需手动 source。
+
     Args:
         config_path: 配置文件路径，为 None 时自动查找。
 
@@ -90,6 +152,9 @@ def load_config(config_path: Optional[str | Path] = None) -> AppConfig:
     Raises:
         ConfigError: 配置文件不存在或格式错误。
     """
+    # 自动加载 .env 文件
+    _auto_load_dotenv()
+
     path = _find_config_path(config_path)
 
     try:

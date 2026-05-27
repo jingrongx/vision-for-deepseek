@@ -49,6 +49,17 @@ DeepSeek 模型无法直接处理图片。本 skill 将图片发送到视觉 API
 
 ## 使用步骤
 
+### 第 0 步：配置 API Key（仅需一次）
+
+在项目根目录创建 `.env` 文件（参考 `.env.example`），写入你的 API Key：
+
+```bash
+cp .env.example .env
+# 编辑 .env，填入真实 API Key
+```
+
+**.env 文件会自动加载，无需手动 source。**
+
 ### 第 1 步：确保环境配置
 
 首次使用前，检查配置文件和环境变量：
@@ -70,7 +81,11 @@ python src/vision_bridge/cli.py config validate
 ### 第 2 步：描述单张图片
 
 ```bash
+# 从文件路径
 python src/vision_bridge/cli.py describe <图片路径>
+
+# 从标准输入读取 base64 图片数据
+cat image.png | base64 | python src/vision_bridge/cli.py describe --stdin
 ```
 
 选项：
@@ -114,3 +129,8 @@ python src/vision_bridge/cli.py batch <目录路径> --output-dir ./results/
 
 **配置文件在哪里？**
 查找顺序：`VISION_BRIDGE_CONFIG` 环境变量 → `~/.config/vision-for-deepseek/config.yaml` → `./config.yaml`
+
+**Claude Code 中上传的图片怎么处理？**
+在 Claude Code 聊天中上传的图片不保存为独立文件。处理方式：
+1. 将图片保存到本地文件（如 `photo.png`），然后运行 `vision-bridge describe photo.png`
+2. 使用 `--stdin` 管道传入 base64 数据
