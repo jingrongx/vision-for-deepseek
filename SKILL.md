@@ -1,13 +1,27 @@
 ---
 name: vision-for-deepseek
-description: This skill should be used when the user provides an image and asks
-  to "describe this image", "what is in this picture", "look at this screenshot",
-  "analyze this photo", "read this image", "describe this diagram", "OCR this image",
-  "extract text from image", "看看这张图", "描述这张图片", "这张图片里有什么",
-  "识别图片中的文字", "分析这张截图", or when DeepSeek cannot process an image
-  and a vision-capable model is needed to generate a text description. Also use
-  when the user says "vision bridge", "图片描述", "image to text", "识图",
-  or wants to batch-describe images in a directory.
+description: |
+  CRITICAL: This skill MUST be invoked whenever the user's message contains an
+  image, photo, screenshot, picture, diagram, chart, or any visual content —
+  regardless of what text the user types (or even if they type nothing at all).
+  DeepSeek cannot process images directly, so all visual content must be routed
+  through this vision bridge first.
+
+  Automatic triggers (any of these in the user's message):
+  - An image/photo/screenshot/diagram is attached or pasted
+  - "describe this image", "what is in this picture", "look at this screenshot"
+  - "analyze this photo", "read this image", "describe this diagram"
+  - "OCR this image", "extract text from image"
+  - "看看这张图", "描述这张图片", "这张图片里有什么", "识别图片中的文字"
+  - "分析这张截图", "看图", "图片里", "图中", "如图", "这张图"
+  - "帮我看看", "这是什么", "这是啥", "这是", "看下"
+  - "vision bridge", "图片描述", "image to text", "识图", "看看"
+  - "截图", "照片", "图片", "图像", "贴图", "screen", "photo"
+  - OR any message that simply has an image with little/no text
+
+  When triggered, save the image to a temp file and run:
+  python src/vision_bridge/cli.py describe <image_path>
+  Then present the description to the user.
 user-invocable: true
 version: 1.0.0
 allowed-tools:
