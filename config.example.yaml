@@ -1,0 +1,96 @@
+# Vision Bridge 配置文件
+# 视觉桥接工具 - 为 DeepSeek 提供多模态识图能力
+#
+# 配置查找顺序:
+#   1. VISION_BRIDGE_CONFIG 环境变量指定路径
+#   2. ~/.config/vision-for-deepseek/config.yaml
+#   3. 当前目录 ./config.yaml
+#
+# API Key 通过环境变量引用，不直接写在配置文件中。
+# 复制 .env.example 为 .env 并填入你的 API Key。
+
+# 默认使用的视觉提供者
+# 可选值: doubao, qwen, claude, openai, ollama
+default_provider: doubao
+
+# 各提供者配置
+providers:
+
+  # ============================================
+  # 豆包（火山方舟）- 默认提供者，国内首选
+  # 获取 API Key: https://console.volcengine.com/ark
+  # ============================================
+  doubao:
+    # 可选模型: doubao-seed-2-0-mini-260428, doubao-vision-pro-32k
+    model: doubao-seed-2-0-mini-260428
+    api_key: ${DOUBAO_API_KEY}
+    api_base: https://ark.cn-beijing.volces.com/api/v3
+    max_tokens: 1500
+    temperature: 0.0
+
+  # ============================================
+  # 千问（阿里云 DashScope）
+  # 获取 API Key: https://dashscope.console.aliyun.com/
+  # ============================================
+  qwen:
+    # 可选模型: qwen-vl-plus, qwen-vl-max, qwen2.5-vl-72b-instruct
+    model: qwen-vl-plus
+    api_key: ${QWEN_API_KEY}
+    api_base: https://dashscope.aliyuncs.com/compatible-mode/v1
+    max_tokens: 1500
+    temperature: 0.0
+
+  # ============================================
+  # Anthropic Claude
+  # 获取 API Key: https://console.anthropic.com/
+  # ============================================
+  claude:
+    # 可选模型: claude-opus-4-5-20251101, claude-sonnet-4-20250514
+    model: claude-opus-4-5-20251101
+    api_key: ${ANTHROPIC_API_KEY}
+    max_tokens: 1500
+    temperature: 0.0
+
+  # ============================================
+  # OpenAI GPT-4V / GPT-4o
+  # 获取 API Key: https://platform.openai.com/api-keys
+  # ============================================
+  openai:
+    # 可选模型: gpt-4o, gpt-4o-mini, gpt-4-turbo
+    model: gpt-4o
+    api_key: ${OPENAI_API_KEY}
+    max_tokens: 1500
+    temperature: 0.0
+
+  # ============================================
+  # Ollama 本地模型 - 离线/隐私场景
+  # 无需 API Key，需先安装并启动 Ollama
+  #   ollama serve
+  #   ollama pull llava:13b
+  # ============================================
+  ollama:
+    # 可选模型: llava:13b, llava:7b, minicpm-v, bakllava
+    model: llava:13b
+    api_base: http://localhost:11434
+    max_tokens: 1000
+    temperature: 0.0
+
+# 输出格式化设置
+output:
+  # 输出格式: structured（分段）, narrative（自然段落）, simple（纯文本）
+  format: structured
+  # 语言: zh（中文）, en（英文）
+  language: zh
+  # 是否在输出中包含元数据（提供者、模型、时间戳）
+  include_metadata: true
+
+# CLI 默认设置
+cli:
+  # 批量处理时支持的图片格式
+  image_extensions:
+    - .png
+    - .jpg
+    - .jpeg
+    - .gif
+    - .webp
+    - .bmp
