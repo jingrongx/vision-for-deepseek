@@ -1,27 +1,35 @@
 ---
 name: vision-for-deepseek
 description: |
-  CRITICAL: This skill MUST be invoked whenever the user's message contains an
-  image, photo, screenshot, picture, diagram, chart, or any visual content —
-  regardless of what text the user types (or even if they type nothing at all).
-  DeepSeek cannot process images directly, so all visual content must be routed
-  through this vision bridge first.
+  CRITICAL — THIS SKILL MUST BE INVOKED IN THESE SCENARIOS:
 
-  Automatic triggers (any of these in the user's message):
-  - An image/photo/screenshot/diagram is attached or pasted
+  1. IMAGE DETECTED: The user's message contains or references an image, photo,
+     screenshot, picture, diagram, chart, or any visual content — even if the
+     user types NO text at all. Images pasted into Claude Code, Claude for Windows,
+     or any IDE chat MUST trigger this skill automatically.
+
+  2. UNSUPPORTED IMAGE: The system shows "[Unsupported Image]" or "[Image]" or
+     any image-related placeholder — this means DeepSeek cannot process the image
+     and this vision bridge MUST step in immediately.
+
+  3. MODEL NEEDS TO SEE: At any point when the model needs to look at an image,
+     screenshot, or photo to answer a question or complete a task.
+
+  Trigger phrases (match ANY of these):
+  - "[Unsupported Image]", "[Image]", "unsupported image"
   - "describe this image", "what is in this picture", "look at this screenshot"
   - "analyze this photo", "read this image", "describe this diagram"
   - "OCR this image", "extract text from image"
   - "看看这张图", "描述这张图片", "这张图片里有什么", "识别图片中的文字"
   - "分析这张截图", "看图", "图片里", "图中", "如图", "这张图"
-  - "帮我看看", "这是什么", "这是啥", "这是", "看下"
-  - "vision bridge", "图片描述", "image to text", "识图", "看看"
-  - "截图", "照片", "图片", "图像", "贴图", "screen", "photo"
-  - OR any message that simply has an image with little/no text
+  - "帮我看看", "这是什么", "这是啥", "这是", "看下", "看看"
+  - "vision bridge", "图片描述", "image to text", "识图", "截图"
+  - "照片", "图片", "图像", "贴图", "screen", "photo", "picture"
 
-  When triggered, save the image to a temp file and run:
-  python src/vision_bridge/cli.py describe <image_path>
-  Then present the description to the user.
+  When triggered:
+  1. Ask user for the image file path if not provided
+  2. Run: python src/vision_bridge/cli.py describe <image_path>
+  3. Present the text description as the model's "view" of the image
 user-invocable: true
 version: 1.0.0
 allowed-tools:
@@ -158,3 +166,39 @@ python src/vision_bridge/cli.py batch <目录路径> --output-dir ./results/
 在 Claude Code 聊天中上传的图片不保存为独立文件。处理方式：
 1. 将图片保存到本地文件（如 `photo.png`），然后运行 `vision-bridge describe photo.png`
 2. 使用 `--stdin` 管道传入 base64 数据
+
+## 跨 IDE 全局部署
+
+此 skill 可在所有支持 Claude Code skill 的环境中使用：
+**Claude Code** · **Claude for Windows** · **VS Code** · **JetBrains** · **GitHub Codespaces**
+
+### 安装为全局 skill（推荐）
+
+将 skill 安装到用户级 skill 目录，所有项目共享：
+
+```bash
+# 克隆到用户 skill 目录
+git clone git@github.com:jingrongx/vision-for-deepseek.git \
+  ~/.claude/skills/vision-for-deepseek
+
+# 安装 Python 包
+cd ~/.claude/skills/vision-for-deepseek
+pip install -e .
+
+# 配置 API Key
+cp .env.example .env
+# 编辑 .env 填入真实 API Key
+```
+
+### 安装为项目 skill
+
+在特定项目中直接克隆：
+
+```bash
+# 在项目根目录
+git clone git@github.com:jingrongx/vision-for-deepseek.git .claude/skills/vision-for-deepseek
+```
+
+### 验证安装
+
+在任何项目中启动 Claude Code，发送一张图片并说"看看这张图"，skill 应自动触发。
